@@ -1,0 +1,102 @@
+<%- include('layouts/main', { script: 'dashboard' }) %>
+
+<div class="space-y-6">
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Total Employees -->
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5">
+                        <h3 class="stat-label">Total Employees</h3>
+                        <p class="stat-value" id="employee-count">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Tickets -->
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5">
+                        <h3 class="stat-label">Active Tickets</h3>
+                        <p class="stat-value" id="ticket-count">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Departments -->
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
+                        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <div class="ml-5">
+                        <h3 class="stat-label">Departments</h3>
+                        <p class="stat-value" id="department-count">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-card">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Activity</h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">Latest updates from across the system</p>
+        </div>
+        <div class="activity-list" id="recent-activity">
+            <!-- Activity items will be populated here -->
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- New Ticket -->
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <h3 class="text-lg font-medium text-gray-900">Create New Ticket</h3>
+                <p class="mt-1 text-sm text-gray-500">Submit a new support ticket or request</p>
+                <div class="mt-4">
+                    <button onclick="window.location.href='/tickets'" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                        Create Ticket
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Employees -->
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <h3 class="text-lg font-medium text-gray-900">Manage Employees</h3>
+                <p class="mt-1 text-sm text-gray-500">View and manage employee information</p>
+                <div class="mt-4">
+                    <button onclick="window.location.href='/employees'" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
+                        View Employees
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

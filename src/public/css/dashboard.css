@@ -1,0 +1,39 @@
+.stat-card {
+    @apply bg-white overflow-hidden shadow rounded-lg;
+}
+
+.stat-card-content {
+    @apply px-4 py-5 sm:p-6;
+}
+
+.stat-value {
+    @apply mt-1 text-3xl font-semibold text-gray-900;
+}
+
+.stat-label {
+    @apply text-sm font-medium text-gray-500 truncate;
+}
+
+.ticket-status-open {
+    @apply px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800;
+}
+
+.ticket-status-in_progress {
+    @apply px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800;
+}
+
+.ticket-status-resolved {
+    @apply px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800;
+}
+
+.ticket-status-closed {
+    @apply px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800;
+}
+
+.activity-card {
+    @apply bg-white shadow overflow-hidden sm:rounded-lg;
+}
+
+.activity-list {
+    @apply divide-y divide-gray-200;
+}

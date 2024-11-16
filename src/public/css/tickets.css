@@ -1,0 +1,47 @@
+.ticket-status-open {
+    @apply bg-yellow-100 text-yellow-800;
+}
+
+.ticket-status-in_progress {
+    @apply bg-blue-100 text-blue-800;
+}
+
+.ticket-status-resolved {
+    @apply bg-green-100 text-green-800;
+}
+
+.ticket-status-closed {
+    @apply bg-gray-100 text-gray-800;
+}
+
+.priority-low {
+    @apply bg-green-100 text-green-800;
+}
+
+.priority-medium {
+    @apply bg-yellow-100 text-yellow-800;
+}
+
+.priority-high {
+    @apply bg-red-100 text-red-800;
+}
+
+.ticket-card {
+    @apply bg-white shadow rounded-lg p-6 hover:shadow-md transition-shadow duration-200;
+}
+
+.comment-container {
+    @apply max-h-96 overflow-y-auto space-y-4 p-4;
+}
+
+.comment-item {
+    @apply bg-gray-50 rounded-lg p-4;
+}
+
+.ticket-form {
+    @apply space-y-4;
+}
+
+.filter-container {
+    @apply grid grid-cols-1 md:grid-cols-4 gap-4 mt-6;
+}

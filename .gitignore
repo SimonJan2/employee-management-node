@@ -1,0 +1,5 @@
+node_modules
+.env
+package-lock.json
+# Ignore node_modules
+[ -d node_modules ] && find node_modules -type f \( -name '*.js' -o -name '*.jsx' -o -name '*.ts' -o -name '*.tsx' \) -print0 | xargs -0 git check-ignore
