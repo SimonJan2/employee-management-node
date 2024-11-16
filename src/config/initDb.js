@@ -3,15 +3,16 @@ const bcrypt = require('bcryptjs');
 
 const initializeDb = async () => {
     try {
-        // Create admin user if it doesn't exist
+        // Check if admin user exists
         const adminExists = await User.findOne({
             where: { email: 'simonj@gmail.com' }
         });
 
         if (!adminExists) {
+            // Create admin user
             await User.create({
                 email: 'simonj@gmail.com',
-                password: await bcrypt.hash('123456', 10),
+                password: '123456', // Password will be hashed by the model hook
                 firstName: 'Simon',
                 lastName: 'Johnson',
                 role: 'admin',
@@ -20,7 +21,8 @@ const initializeDb = async () => {
             console.log('Admin user created successfully');
         }
     } catch (error) {
-        console.error('Database initialization error:', error);
+        console.error('Error initializing database:', error);
+        throw error;
     }
 };
 

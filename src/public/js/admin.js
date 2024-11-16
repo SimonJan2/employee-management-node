@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // State
+    // State management
     let departments = [];
     let systemSettings = {};
     let logs = [];
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load dashboard statistics
     const loadDashboardStats = async () => {
         try {
-            const stats = await utils.fetchWithAuth('/api/admin/stats');
+            const stats = await fetchWithAuth('/api/admin/stats');
             
             document.getElementById('total-users-count').textContent = stats.totalUsers;
             document.getElementById('active-sessions-count').textContent = stats.activeSessions;
@@ -33,21 +33,33 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('system-alerts-count').textContent = stats.systemAlerts;
         } catch (error) {
             console.error('Error loading stats:', error);
+            showToast('Failed to load dashboard stats', 'error');
         }
     };
 
     // Department management
     const loadDepartments = async () => {
         try {
-            departments = await utils.fetchWithAuth('/api/departments');
+            departments = await fetchWithAuth('/api/departments');
             renderDepartments();
         } catch (error) {
             console.error('Error loading departments:', error);
+            showToast('Failed to load departments', 'error');
         }
     };
 
     const renderDepartments = () => {
         const container = document.getElementById('departments-list');
+        
+        if (departments.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-4">
+                    No departments found
+                </div>
+            `;
+            return;
+        }
+
         container.innerHTML = departments.map(dept => `
             <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div>
@@ -77,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // System settings management
     const loadSystemSettings = async () => {
         try {
-            systemSettings = await utils.fetchWithAuth('/api/admin/settings');
+            systemSettings = await fetchWithAuth('/api/admin/settings');
             const form = document.getElementById('system-settings-form');
             
             form.companyName.value = systemSettings.companyName || '';
@@ -86,18 +98,19 @@ document.addEventListener('DOMContentLoaded', () => {
             form.maintenanceMode.checked = systemSettings.maintenanceMode || false;
         } catch (error) {
             console.error('Error loading system settings:', error);
+            showToast('Failed to load system settings', 'error');
         }
     };
 
     const saveSystemSettings = async (formData) => {
         try {
-            await utils.fetchWithAuth('/api/admin/settings', {
+            await fetchWithAuth('/api/admin/settings', {
                 method: 'PUT',
                 body: JSON.stringify(Object.fromEntries(formData))
             });
             showToast('Settings saved successfully', 'success');
         } catch (error) {
-            showToast(error.message, 'error');
+            showToast('Failed to save settings', 'error');
         }
     };
 
@@ -105,15 +118,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadSystemLogs = async () => {
         try {
             const filter = document.getElementById('log-type-filter').value;
-            logs = await utils.fetchWithAuth(`/api/admin/logs?type=${filter}`);
+            logs = await fetchWithAuth(`/api/admin/logs?type=${filter}`);
             renderLogs();
         } catch (error) {
             console.error('Error loading system logs:', error);
+            showToast('Failed to load system logs', 'error');
         }
     };
 
     const renderLogs = () => {
         const container = document.getElementById('system-logs');
+        
+        if (logs.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-500 py-4">
+                    No logs found
+                </div>
+            `;
+            return;
+        }
+
         container.innerHTML = logs.map(log => `
             <div class="p-3 rounded-lg ${getLogTypeClass(log.type)}">
                 <div class="flex justify-between items-start">
@@ -153,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     `/api/departments/${departmentId}` : 
                     '/api/departments';
                 
-                await utils.fetchWithAuth(url, {
+                await fetchWithAuth(url, {
                     method: departmentId ? 'PUT' : 'POST',
                     body: JSON.stringify(Object.fromEntries(formData))
                 });
@@ -174,21 +198,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Logs
         document.getElementById('log-type-filter').addEventListener('change', loadSystemLogs);
-
+        
         document.getElementById('clear-logs-btn').addEventListener('click', async () => {
-            if (confirm('Are you sure you want to clear all logs?')) {
-                try {
-                    await utils.fetchWithAuth('/api/admin/logs', { method: 'DELETE' });
-                    showToast('Logs cleared successfully', 'success');
-                    await loadSystemLogs();
-                } catch (error) {
-                    showToast(error.message, 'error');
-                }
+            if (!confirm('Are you sure you want to clear all logs?')) return;
+            
+            try {
+                await fetchWithAuth('/api/admin/logs', { method: 'DELETE' });
+                showToast('Logs cleared successfully', 'success');
+                await loadSystemLogs();
+            } catch (error) {
+                showToast(error.message, 'error');
             }
+        });
+
+        // Modal close buttons
+        document.querySelectorAll('.cancel-button').forEach(button => {
+            button.addEventListener('click', closeDepartmentModal);
         });
     };
 
-    // Time zones initialization
+    // Initialize timezones
     const initializeTimezones = () => {
         const timezones = moment.tz.names();
         const select = document.querySelector('select[name="timezone"]');
@@ -224,23 +253,40 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('department-form').reset();
     };
 
-    // Initialize page
-    initialize();
+    // Helper function for API calls
+    const fetchWithAuth = async (url, options = {}) => {
+        const defaultOptions = {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                'Content-Type': 'application/json'
+            }
+        };
+
+        const response = await fetch(url, { ...defaultOptions, ...options });
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'API request failed');
+        }
+        return response.json();
+    };
 
     // Export functions for global access
     window.editDepartment = openDepartmentModal;
     window.deleteDepartment = async (departmentId) => {
-        if (confirm('Are you sure you want to delete this department?')) {
-            try {
-                await utils.fetchWithAuth(`/api/departments/${departmentId}`, {
-                    method: 'DELETE'
-                });
-                
-                showToast('Department deleted successfully', 'success');
-                await loadDepartments();
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
+        if (!confirm('Are you sure you want to delete this department?')) return;
+        
+        try {
+            await fetchWithAuth(`/api/departments/${departmentId}`, {
+                method: 'DELETE'
+            });
+            
+            showToast('Department deleted successfully', 'success');
+            await loadDepartments();
+        } catch (error) {
+            showToast(error.message, 'error');
         }
     };
+
+    // Initialize the page
+    initialize();
 });

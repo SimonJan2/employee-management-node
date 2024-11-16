@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Management System</title>
+    <title><%= typeof title !== 'undefined' ? title + ' - ' : '' %>Employee Management System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/css/styles.css">
-    <link rel="stylesheet" href="/css/dashboard.css">
+    <%- defineContent('styles') %>
 </head>
 <body class="bg-gray-100">
     <div id="particles-js" class="fixed inset-0 z-0"></div>
@@ -42,15 +42,10 @@
     </nav>
 
     <main class="relative z-10 max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <%- body %>
+        <%- defineContent('body') %>
     </main>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/particles.js/2.0.0/particles.min.js"></script>
-    <script src="/js/particles-config.js"></script>
-    <script src="/js/auth-guard.js"></script>
-    <% if (typeof script !== 'undefined') { %>
-        <script src="/js/<%= script %>.js"></script>
-    <% } %>
+    <%- defineContent('scripts') %>
 
     <!-- Toast notifications container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
@@ -59,92 +54,5 @@
     <div id="loading-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 z-50 flex items-center justify-center">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
     </div>
-
-    <!-- Notification handling -->
-    <script>
-        function showToast(message, type = 'success') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            const colors = {
-                success: 'bg-green-500',
-                error: 'bg-red-500',
-                warning: 'bg-yellow-500',
-                info: 'bg-blue-500'
-            };
-
-            toast.className = `${colors[type]} text-white px-6 py-4 rounded-lg mb-3 shadow-lg transform transition-all duration-300 ease-in-out`;
-            toast.innerHTML = message;
-
-            container.appendChild(toast);
-
-            // Fade in
-            setTimeout(() => {
-                toast.classList.add('opacity-0');
-                setTimeout(() => {
-                    container.removeChild(toast);
-                }, 300);
-            }, 3000);
-        }
-
-        function showLoading(show = true) {
-            const overlay = document.getElementById('loading-overlay');
-            overlay.classList.toggle('hidden', !show);
-        }
-
-        // Global error handler for fetch requests
-        window.handleFetchError = async (response) => {
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Something went wrong');
-            }
-            return response;
-        };
-
-        // Check authentication on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            const token = localStorage.getItem('token');
-            const currentPath = window.location.pathname;
-            const publicPaths = ['/login', '/register'];
-
-            if (!token && !publicPaths.includes(currentPath)) {
-                window.location.href = '/login';
-            }
-
-            // Update active navigation item
-            const navLinks = document.querySelectorAll('.nav-link');
-            navLinks.forEach(link => {
-                if (link.getAttribute('href') === currentPath) {
-                    link.classList.add('border-indigo-500', 'text-gray-900');
-                    link.classList.remove('text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
-                }
-            });
-        });
-
-        // Intercept all fetch requests to add authorization header
-        const originalFetch = window.fetch;
-        window.fetch = function(...args) {
-            const [resource, config] = args;
-            
-            // Add auth header if token exists
-            const token = localStorage.getItem('token');
-            if (token) {
-                config.headers = {
-                    ...config.headers,
-                    'Authorization': `Bearer ${token}`
-                };
-            }
-
-            return originalFetch(resource, config)
-                .then(async response => {
-                    if (response.status === 401) {
-                        localStorage.removeItem('token');
-                        localStorage.removeItem('user');
-                        window.location.href = '/login';
-                        throw new Error('Session expired');
-                    }
-                    return response;
-                });
-        };
-    </script>
 </body>
 </html>

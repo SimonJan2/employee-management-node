@@ -1,11 +1,11 @@
-<%- include('layouts/main', { script: 'dashboard' }) %>
+<%- contentFor('body') %>
 
+<!-- Single Stats Overview -->
 <div class="space-y-6">
-    <!-- Stats Overview -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- Total Employees -->
-        <div class="stat-card">
-            <div class="stat-card-content">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-indigo-500 rounded-md p-3">
                         <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -14,16 +14,16 @@
                         </svg>
                     </div>
                     <div class="ml-5">
-                        <h3 class="stat-label">Total Employees</h3>
-                        <p class="stat-value" id="employee-count">0</p>
+                        <h3 class="text-sm font-medium text-gray-500">Total Employees</h3>
+                        <p class="mt-1 text-2xl font-semibold text-gray-900" id="employee-count">0</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Active Tickets -->
-        <div class="stat-card">
-            <div class="stat-card-content">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-green-500 rounded-md p-3">
                         <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,16 +32,16 @@
                         </svg>
                     </div>
                     <div class="ml-5">
-                        <h3 class="stat-label">Active Tickets</h3>
-                        <p class="stat-value" id="ticket-count">0</p>
+                        <h3 class="text-sm font-medium text-gray-500">Active Tickets</h3>
+                        <p class="mt-1 text-2xl font-semibold text-gray-900" id="ticket-count">0</p>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Departments -->
-        <div class="stat-card">
-            <div class="stat-card-content">
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 bg-purple-500 rounded-md p-3">
                         <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,52 +50,22 @@
                         </svg>
                     </div>
                     <div class="ml-5">
-                        <h3 class="stat-label">Departments</h3>
-                        <p class="stat-value" id="department-count">0</p>
+                        <h3 class="text-sm font-medium text-gray-500">Departments</h3>
+                        <p class="mt-1 text-2xl font-semibold text-gray-900" id="department-count">0</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Recent Activity -->
-    <div class="activity-card">
-        <div class="px-4 py-5 sm:px-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">Recent Activity</h3>
-            <p class="mt-1 max-w-2xl text-sm text-gray-500">Latest updates from across the system</p>
+    <!-- Recent Activity Section -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 border-b border-gray-200 sm:px-6">
+            <h3 class="text-lg font-medium text-gray-900">Recent Activity</h3>
         </div>
-        <div class="activity-list" id="recent-activity">
-            <!-- Activity items will be populated here -->
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- New Ticket -->
-        <div class="stat-card">
-            <div class="stat-card-content">
-                <h3 class="text-lg font-medium text-gray-900">Create New Ticket</h3>
-                <p class="mt-1 text-sm text-gray-500">Submit a new support ticket or request</p>
-                <div class="mt-4">
-                    <button onclick="window.location.href='/tickets'" 
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                        Create Ticket
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- View Employees -->
-        <div class="stat-card">
-            <div class="stat-card-content">
-                <h3 class="text-lg font-medium text-gray-900">Manage Employees</h3>
-                <p class="mt-1 text-sm text-gray-500">View and manage employee information</p>
-                <div class="mt-4">
-                    <button onclick="window.location.href='/employees'" 
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700">
-                        View Employees
-                    </button>
-                </div>
+        <div class="px-4 py-5 sm:p-6">
+            <div id="recent-activity" class="space-y-4">
+                <!-- Activity items will be populated by JavaScript -->
             </div>
         </div>
     </div>

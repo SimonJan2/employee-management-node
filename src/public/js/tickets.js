@@ -6,24 +6,14 @@ document.addEventListener('DOMContentLoaded', () => {
     let tickets = [];
     let users = [];
     let currentTicketId = null;
-    let filters = {
-        search: '',
-        status: '',
-        priority: '',
-        assigneeId: ''
-    };
 
     // Initialize
     const initialize = async () => {
         try {
-            // Load users for assignee dropdown
-            users = await utils.fetchWithAuth('/api/users');
-            populateAssigneeDropdowns();
-
-            // Load initial tickets
-            await loadTickets();
-
-            // Set up event listeners
+            await Promise.all([
+                loadUsers(),
+                loadTickets()
+            ]);
             setupEventListeners();
         } catch (error) {
             console.error('Initialization error:', error);
@@ -31,98 +21,100 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Load tickets with filtering and pagination
+    // Load tickets
     const loadTickets = async () => {
         try {
             showLoading(true);
-            const queryParams = new URLSearchParams({
-                page: currentPage,
-                limit: pageSize,
-                ...filters
+            const response = await fetch('/api/tickets', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
             });
 
-            const response = await utils.fetchWithAuth(`/api/tickets?${queryParams}`);
-            tickets = response.data;
-            totalPages = Math.ceil(response.total / pageSize);
-
+            if (!response.ok) throw new Error('Failed to load tickets');
+            tickets = await response.json();
             renderTickets();
-            renderPagination();
         } catch (error) {
             console.error('Error loading tickets:', error);
-            showToast('Failed to load tickets', 'error');
+            showToast(error.message, 'error');
         } finally {
             showLoading(false);
         }
     };
 
-    // Render individual ticket card
-    const renderTicketCard = (ticket) => `
-        <div class="bg-white shadow rounded-lg hover:shadow-md transition-shadow duration-200">
-            <div class="p-6">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-gray-900">
-                        <a href="#" onclick="viewTicketDetails('${ticket.id}'); return false;" class="hover:text-indigo-600">
-                            ${ticket.title}
-                        </a>
-                    </h3>
-                    <span class="ticket-status-${ticket.status} px-2 py-1 text-xs font-medium rounded-full">
-                        ${ticket.status}
-                    </span>
-                </div>
-                <div class="mt-2">
-                    <p class="text-sm text-gray-600">
-                        ${utils.truncateText(ticket.description, 150)}
-                    </p>
-                </div>
-                <div class="mt-4 flex items-center justify-between">
-                    <div class="flex items-center space-x-4">
-                        <div class="flex items-center text-sm text-gray-500">
-                            <span class="priority-${ticket.priority} px-2 py-1 text-xs font-medium rounded-full">
-                                ${ticket.priority}
-                            </span>
-                        </div>
-                        <div class="text-sm text-gray-500">
-                            ${ticket.assignee ? `Assigned to: ${ticket.assignee.firstName} ${ticket.assignee.lastName}` : 'Unassigned'}
-                        </div>
-                    </div>
-                    <div class="text-sm text-gray-500">
-                        ${new Date(ticket.createdAt).toLocaleDateString()}
-                    </div>
-                </div>
-                <div class="mt-4 flex justify-end space-x-2">
-                    <button onclick="editTicket('${ticket.id}')" 
-                        class="text-indigo-600 hover:text-indigo-900">Edit</button>
-                    <button onclick="deleteTicket('${ticket.id}')"
-                        class="text-red-600 hover:text-red-900">Delete</button>
-                </div>
-            </div>
-        </div>
-    `;
+    // Load users for assignee dropdown
+    const loadUsers = async () => {
+        try {
+            const response = await fetch('/api/users', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to load users');
+            users = await response.json();
+            populateAssigneeDropdowns();
+        } catch (error) {
+            console.error('Error loading users:', error);
+            showToast('Failed to load users', 'error');
+        }
+    };
 
     // Render tickets
     const renderTickets = () => {
         const container = document.getElementById('tickets-container');
+        
         if (tickets.length === 0) {
             container.innerHTML = `
-                <div class="bg-white shadow rounded-lg p-6 text-center">
-                    <p class="text-gray-500">No tickets found</p>
+                <div class="bg-white shadow rounded-lg p-6 text-center text-gray-500">
+                    No tickets found
                 </div>
             `;
             return;
         }
-        container.innerHTML = tickets.map(renderTicketCard).join('');
-    };
 
-    // Populate assignee dropdowns
-    const populateAssigneeDropdowns = () => {
-        const options = users.map(user => 
-            `<option value="${user.id}">${user.firstName} ${user.lastName}</option>`
-        ).join('');
-
-        document.querySelector('select[name="assigneeId"]').innerHTML = 
-            '<option value="">Unassigned</option>' + options;
-        document.getElementById('assignee-filter').innerHTML = 
-            '<option value="">All Assignees</option>' + options;
+        container.innerHTML = tickets.map(ticket => `
+            <div class="bg-white shadow rounded-lg hover:shadow-md transition-shadow duration-200">
+                <div class="p-6">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-gray-900">
+                            <a href="#" onclick="viewTicketDetails('${ticket.id}'); return false;" class="hover:text-indigo-600">
+                                ${ticket.title}
+                            </a>
+                        </h3>
+                        <span class="ticket-status-${ticket.status} px-2 py-1 text-xs font-medium rounded-full">
+                            ${ticket.status}
+                        </span>
+                    </div>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-600 line-clamp-2">
+                            ${ticket.description}
+                        </p>
+                    </div>
+                    <div class="mt-4 flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <span class="priority-${ticket.priority} px-2 py-1 text-xs font-medium rounded-full">
+                                ${ticket.priority}
+                            </span>
+                            <span class="text-sm text-gray-500">
+                                ${ticket.assignee ? `Assigned to: ${ticket.assignee.firstName} ${ticket.assignee.lastName}` : 'Unassigned'}
+                            </span>
+                        </div>
+                        <div class="text-sm text-gray-500">
+                            ${new Date(ticket.createdAt).toLocaleDateString()}
+                        </div>
+                    </div>
+                    <div class="mt-4 flex justify-end space-x-2">
+                        <button onclick="editTicket('${ticket.id}')" 
+                            class="text-indigo-600 hover:text-indigo-900">Edit</button>
+                        <button onclick="deleteTicket('${ticket.id}')"
+                            class="text-red-600 hover:text-red-900">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
     };
 
     // Setup event listeners
@@ -132,55 +124,64 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal();
         });
 
-        // Cancel button
-        document.getElementById('cancel-button').addEventListener('click', closeModal);
-        document.querySelector('.close-detail-modal-btn').addEventListener('click', closeDetailModal);
-
-        // Form submission
+        // Form submissions
         document.getElementById('ticket-form').addEventListener('submit', handleTicketSubmit);
         document.getElementById('comment-form').addEventListener('submit', handleCommentSubmit);
 
-        // Filters
-        const applyFilters = utils.debounce(() => {
-            filters = {
-                search: document.getElementById('search-input').value,
-                status: document.getElementById('status-filter').value,
-                priority: document.getElementById('priority-filter').value,
-                assigneeId: document.getElementById('assignee-filter').value
-            };
-            currentPage = 1;
-            loadTickets();
-        }, 300);
+        // Modal close buttons
+        document.querySelectorAll('.cancel-button, .close-detail-modal').forEach(button => {
+            button.addEventListener('click', () => {
+                closeModal();
+                closeDetailModal();
+            });
+        });
 
-        document.getElementById('search-input').addEventListener('input', applyFilters);
-        document.getElementById('status-filter').addEventListener('change', applyFilters);
-        document.getElementById('priority-filter').addEventListener('change', applyFilters);
-        document.getElementById('assignee-filter').addEventListener('change', applyFilters);
+        // Filters
+        const applyFilters = () => {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const status = document.getElementById('status-filter').value;
+            const priority = document.getElementById('priority-filter').value;
+            const assigneeId = document.getElementById('assignee-filter').value;
+
+            const filteredTickets = tickets.filter(ticket => {
+                const matchesSearch = 
+                    ticket.title.toLowerCase().includes(searchTerm) ||
+                    ticket.description.toLowerCase().includes(searchTerm);
+                const matchesStatus = !status || ticket.status === status;
+                const matchesPriority = !priority || ticket.priority === priority;
+                const matchesAssignee = !assigneeId || ticket.assigneeId === assigneeId;
+
+                return matchesSearch && matchesStatus && matchesPriority && matchesAssignee;
+            });
+
+            renderFilteredTickets(filteredTickets);
+        };
+
+        ['search-input', 'status-filter', 'priority-filter', 'assignee-filter'].forEach(id => {
+            document.getElementById(id).addEventListener('change', applyFilters);
+            document.getElementById(id).addEventListener('input', applyFilters);
+        });
 
         // Page size
         document.getElementById('page-size').addEventListener('change', (e) => {
             pageSize = parseInt(e.target.value);
             currentPage = 1;
-            loadTickets();
+            renderTickets();
         });
     };
 
     // Modal handling
     const openModal = (ticketId = null) => {
-        const modalTitle = document.getElementById('modal-title');
         const modal = document.getElementById('ticket-modal');
         const form = document.getElementById('ticket-form');
+        const title = document.getElementById('modal-title');
 
-        modalTitle.textContent = ticketId ? 'Edit Ticket' : 'New Ticket';
+        title.textContent = ticketId ? 'Edit Ticket' : 'New Ticket';
         
         if (ticketId) {
             const ticket = tickets.find(t => t.id === ticketId);
             if (ticket) {
-                form.title.value = ticket.title;
-                form.description.value = ticket.description;
-                form.priority.value = ticket.priority;
-                form.status.value = ticket.status;
-                form.assigneeId.value = ticket.assigneeId || '';
+                populateForm(ticket);
             }
         } else {
             form.reset();
@@ -195,37 +196,69 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('ticket-form').reset();
     };
 
-    // Handle ticket form submission
+    const closeDetailModal = () => {
+        document.getElementById('ticket-details-modal').classList.add('hidden');
+    };
+
+    // Populate assignee dropdowns
+    const populateAssigneeDropdowns = () => {
+        const options = users.map(user => 
+            `<option value="${user.id}">${user.firstName} ${user.lastName}</option>`
+        ).join('');
+
+        document.getElementById('assignee-filter').innerHTML = 
+            '<option value="">All Assignees</option>' + options;
+        document.querySelector('select[name="assigneeId"]').innerHTML = 
+            '<option value="">Unassigned</option>' + options;
+    };
+
+    // Handle form submissions
     const handleTicketSubmit = async (e) => {
         e.preventDefault();
-        const form = e.target;
-        const ticketId = form.dataset.ticketId;
         
         try {
+            const form = e.target;
+            const ticketId = form.dataset.ticketId;
             const formData = new FormData(form);
-            const data = Object.fromEntries(formData.entries());
+            const data = Object.fromEntries(formData);
             
             const url = ticketId ? `/api/tickets/${ticketId}` : '/api/tickets';
             const method = ticketId ? 'PUT' : 'POST';
 
-            await utils.fetchWithAuth(url, {
+            const response = await fetch(url, {
                 method,
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify(data)
             });
+
+            if (!response.ok) throw new Error('Failed to save ticket');
 
             showToast(`Ticket ${ticketId ? 'updated' : 'created'} successfully`, 'success');
             closeModal();
             await loadTickets();
         } catch (error) {
+            console.error('Error saving ticket:', error);
             showToast(error.message, 'error');
         }
     };
 
-    // Ticket details handling
+    // View ticket details
     window.viewTicketDetails = async (ticketId) => {
         try {
             showLoading(true);
-            const ticket = await utils.fetchWithAuth(`/api/tickets/${ticketId}`);
+            const response = await fetch(`/api/tickets/${ticketId}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to load ticket details');
+            
+            const ticket = await response.json();
             currentTicketId = ticketId;
             
             const modal = document.getElementById('ticket-details-modal');
@@ -247,47 +280,62 @@ document.addEventListener('DOMContentLoaded', () => {
             await loadComments(ticketId);
             modal.classList.remove('hidden');
         } catch (error) {
+            console.error('Error loading ticket details:', error);
             showToast(error.message, 'error');
         } finally {
             showLoading(false);
         }
     };
 
-    const closeDetailModal = () => {
-        document.getElementById('ticket-details-modal').classList.add('hidden');
-        currentTicketId = null;
-    };
-
-    // Comments handling
+    // Handle comments
     const loadComments = async (ticketId) => {
         try {
-            const comments = await utils.fetchWithAuth(`/api/tickets/${ticketId}/comments`);
-            const container = document.getElementById('comments-container');
+            const response = await fetch(`/api/tickets/${ticketId}/comments`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to load comments');
             
-            container.innerHTML = comments.map(comment => `
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <img src="${comment.user.profilePicture || '/images/default-avatar.png'}" 
-                                alt="" class="h-8 w-8 rounded-full">
-                            <div class="ml-3">
-                                <p class="text-sm font-medium text-gray-900">
-                                    ${comment.user.firstName} ${comment.user.lastName}
-                                </p>
-                                <p class="text-xs text-gray-500">
-                                    ${new Date(comment.createdAt).toLocaleString()}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="mt-2 text-sm text-gray-700">
-                        ${comment.content}
-                    </div>
-                </div>
-            `).join('') || '<p class="text-gray-500 text-center">No comments yet</p>';
+            const comments = await response.json();
+            renderComments(comments);
         } catch (error) {
             console.error('Error loading comments:', error);
+            showToast('Failed to load comments', 'error');
         }
+    };
+
+    const renderComments = (comments) => {
+        const container = document.getElementById('comments-container');
+        
+        if (comments.length === 0) {
+            container.innerHTML = '<p class="text-center text-gray-500">No comments yet</p>';
+            return;
+        }
+
+        container.innerHTML = comments.map(comment => `
+            <div class="bg-gray-50 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <img src="${comment.user.profilePicture || '/images/default-avatar.png'}" 
+                            alt="" class="h-8 w-8 rounded-full">
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">
+                                ${comment.user.firstName} ${comment.user.lastName}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                ${new Date(comment.createdAt).toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-2 text-sm text-gray-700">
+                    ${comment.content}
+                </div>
+            </div>
+        `).join('');
     };
 
     const handleCommentSubmit = async (e) => {
@@ -295,37 +343,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentTicketId) return;
 
         try {
-            const formData = new FormData(e.target);
-            await utils.fetchWithAuth(`/api/tickets/${currentTicketId}/comments`, {
+            const form = e.target;
+            const formData = new FormData(form);
+
+            const response = await fetch(`/api/tickets/${currentTicketId}/comments`, {
                 method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
                 body: JSON.stringify({ content: formData.get('content') })
             });
 
-            e.target.reset();
+            if (!response.ok) throw new Error('Failed to add comment');
+
+            form.reset();
             await loadComments(currentTicketId);
             showToast('Comment added successfully', 'success');
         } catch (error) {
+            console.error('Error adding comment:', error);
             showToast(error.message, 'error');
         }
     };
 
-    // Initialize the page
+    // Initialize page
     initialize();
-
-    // Export functions for global access
-    window.editTicket = openModal;
-    window.deleteTicket = async (ticketId) => {
-        if (confirm('Are you sure you want to delete this ticket?')) {
-            try {
-                await utils.fetchWithAuth(`/api/tickets/${ticketId}`, {
-                    method: 'DELETE'
-                });
-                
-                showToast('Ticket deleted successfully', 'success');
-                await loadTickets();
-            } catch (error) {
-                showToast(error.message, 'error');
-            }
-        }
-    };
 });

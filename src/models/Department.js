@@ -14,10 +14,14 @@ Department.init({
         allowNull: false,
         unique: true
     },
-    description: DataTypes.TEXT
+    description: {
+        type: DataTypes.TEXT,
+        allowNull: true
+    }
 }, {
     sequelize,
-    modelName: 'Department'
+    modelName: 'Department',
+    tableName: 'departments'
 });
 
 module.exports = Department;

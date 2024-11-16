@@ -26,8 +26,14 @@ User.init({
         type: DataTypes.STRING,
         allowNull: false
     },
-    firstName: DataTypes.STRING,
-    lastName: DataTypes.STRING,
+    firstName: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    lastName: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     role: {
         type: DataTypes.ENUM('admin', 'manager', 'employee'),
         defaultValue: 'employee'
@@ -35,10 +41,27 @@ User.init({
     isActive: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    departmentId: {
+        type: DataTypes.UUID,
+        allowNull: true
     }
 }, {
     sequelize,
-    modelName: 'User'
+    modelName: 'User',
+    tableName: 'users',
+    hooks: {
+        beforeCreate: async (user) => {
+            if (user.password) {
+                user.password = await bcrypt.hash(user.password, 10);
+            }
+        },
+        beforeUpdate: async (user) => {
+            if (user.changed('password')) {
+                user.password = await bcrypt.hash(user.password, 10);
+            }
+        }
+    }
 });
 
 module.exports = User;

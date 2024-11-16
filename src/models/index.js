@@ -1,20 +1,24 @@
+const sequelize = require('../config/database');
 const User = require('./User');
 const Department = require('./Department');
 const Ticket = require('./Ticket');
 
-// Define relationships after all models are defined
-User.belongsTo(Department, { foreignKey: 'departmentId' });
-Department.hasMany(User, { foreignKey: 'departmentId' });
-
-Ticket.belongsTo(User, { as: 'creator', foreignKey: 'creatorId' });
-Ticket.belongsTo(User, { as: 'assignee', foreignKey: 'assigneeId' });
-User.hasMany(Ticket, { foreignKey: 'creatorId', as: 'createdTickets' });
-User.hasMany(Ticket, { foreignKey: 'assigneeId', as: 'assignedTickets' });
-
-// Export all models
-module.exports = {
+const models = {
     User,
     Department,
-    Ticket,
-    sequelize: require('../config/database')
+    Ticket
 };
+
+// Define associations
+models.User.belongsTo(models.Department, { foreignKey: 'departmentId' });
+models.Department.hasMany(models.User, { foreignKey: 'departmentId' });
+
+models.Ticket.belongsTo(models.User, { as: 'creator', foreignKey: 'creatorId' });
+models.Ticket.belongsTo(models.User, { as: 'assignee', foreignKey: 'assigneeId' });
+models.User.hasMany(models.Ticket, { foreignKey: 'creatorId', as: 'createdTickets' });
+models.User.hasMany(models.Ticket, { foreignKey: 'assigneeId', as: 'assignedTickets' });
+
+// Add sequelize instance to models
+models.sequelize = sequelize;
+
+module.exports = models;

@@ -11,10 +11,7 @@ Ticket.init({
     },
     title: {
         type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-            notEmpty: true
-        }
+        allowNull: false
     },
     description: {
         type: DataTypes.TEXT,
@@ -27,26 +24,11 @@ Ticket.init({
     priority: {
         type: DataTypes.ENUM('low', 'medium', 'high'),
         defaultValue: 'medium'
-    },
-    creatorId: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'Users',
-            key: 'id'
-        }
-    },
-    assigneeId: {
-        type: DataTypes.UUID,
-        references: {
-            model: 'Users',
-            key: 'id'
-        }
     }
 }, {
     sequelize,
     modelName: 'Ticket',
-    timestamps: true
+    tableName: 'tickets'
 });
 
 module.exports = Ticket;

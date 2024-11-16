@@ -5,19 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let totalPages = 0;
     let employees = [];
     let departments = [];
-    let filters = {
-        search: '',
-        department: '',
-        role: '',
-        status: ''
-    };
 
-    // DOM elements
+    // Elements
     const employeesTableBody = document.getElementById('employees-table-body');
     const addEmployeeBtn = document.getElementById('add-employee-btn');
     const employeeModal = document.getElementById('employee-modal');
     const employeeForm = document.getElementById('employee-form');
-    const cancelButton = document.getElementById('cancel-button');
     const searchInput = document.getElementById('search-input');
     const departmentFilter = document.getElementById('department-filter');
     const roleFilter = document.getElementById('role-filter');
@@ -27,14 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize
     const initialize = async () => {
         try {
-            // Load departments
-            departments = await utils.fetchWithAuth('/api/departments');
-            populateDepartmentDropdowns();
-
-            // Load initial employees
-            await loadEmployees();
-
-            // Set up event listeners
+            await Promise.all([
+                loadDepartments(),
+                loadEmployees()
+            ]);
             setupEventListeners();
         } catch (error) {
             console.error('Initialization error:', error);
@@ -46,18 +35,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadEmployees = async () => {
         try {
             showLoading(true);
-            const queryParams = new URLSearchParams({
-                page: currentPage,
-                limit: pageSize,
-                ...filters
+            const response = await fetch('/api/users', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
             });
 
-            const response = await utils.fetchWithAuth(`/api/users?${queryParams}`);
-            employees = response.data;
-            totalPages = Math.ceil(response.total / pageSize);
-
+            if (!response.ok) throw new Error('Failed to load employees');
+            employees = await response.json();
             renderEmployees();
-            renderPagination();
         } catch (error) {
             console.error('Error loading employees:', error);
             showToast('Failed to load employees', 'error');
@@ -66,39 +53,63 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Load departments
+    const loadDepartments = async () => {
+        try {
+            const response = await fetch('/api/departments', {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to load departments');
+            departments = await response.json();
+            populateDepartmentDropdowns();
+        } catch (error) {
+            console.error('Error loading departments:', error);
+            showToast('Failed to load departments', 'error');
+        }
+    };
+
     // Render employees table
     const renderEmployees = () => {
+        if (employees.length === 0) {
+            employeesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                        No employees found
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
         employeesTableBody.innerHTML = employees.map(employee => `
             <tr>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 h-10 w-10">
-                            <img class="h-10 w-10 rounded-full" 
-                                src="${employee.profilePicture || '/images/default-avatar.png'}" 
-                                alt="${employee.firstName}">
+                        <div class="h-10 w-10 flex-shrink-0">
+                            <img class="h-10 w-10 rounded-full" src="${employee.profilePicture || '/images/default-avatar.png'}" alt="">
                         </div>
                         <div class="ml-4">
-                            <div class="text-sm font-medium text-gray-900">
-                                ${employee.firstName} ${employee.lastName}
-                            </div>
-                            <div class="text-sm text-gray-500">
-                                ${employee.email}
-                            </div>
+                            <div class="text-sm font-medium text-gray-900">${employee.firstName} ${employee.lastName}</div>
+                            <div class="text-sm text-gray-500">${employee.email}</div>
                         </div>
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                     <div class="text-sm text-gray-900">
-                        ${departments.find(d => d.id === employee.departmentId)?.name || 'N/A'}
+                        ${getDepartmentName(employee.departmentId)}
                     </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-indigo-100 text-indigo-800">
                         ${employee.role}
                     </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
                         ${employee.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
                         ${employee.isActive ? 'Active' : 'Inactive'}
                     </span>
@@ -113,47 +124,20 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     };
 
-    // Render pagination controls
-    const renderPagination = () => {
-        const paginationControls = document.getElementById('pagination-controls');
-        let html = '';
+    // Helper function to get department name
+    const getDepartmentName = (departmentId) => {
+        const department = departments.find(d => d.id === departmentId);
+        return department ? department.name : 'N/A';
+    };
 
-        if (totalPages > 1) {
-            html += `
-                <button 
-                    onclick="changePage(${currentPage - 1})" 
-                    class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                    ${currentPage === 1 ? 'disabled' : ''}>
-                    Previous
-                </button>
-            `;
+    // Populate department dropdowns
+    const populateDepartmentDropdowns = () => {
+        const options = departments.map(dept => 
+            `<option value="${dept.id}">${dept.name}</option>`
+        ).join('');
 
-            for (let i = 1; i <= totalPages; i++) {
-                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-                    html += `
-                        <button 
-                            onclick="changePage(${i})"
-                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium
-                                ${currentPage === i ? 'bg-indigo-50 text-indigo-600' : 'text-gray-700 hover:bg-gray-50'}">
-                            ${i}
-                        </button>
-                    `;
-                } else if (i === currentPage - 3 || i === currentPage + 3) {
-                    html += `<span class="px-2 py-2">...</span>`;
-                }
-            }
-
-            html += `
-                <button 
-                    onclick="changePage(${currentPage + 1})"
-                    class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                    ${currentPage === totalPages ? 'disabled' : ''}>
-                    Next
-                </button>
-            `;
-        }
-
-        paginationControls.innerHTML = html;
+        departmentFilter.innerHTML = '<option value="">All Departments</option>' + options;
+        document.querySelector('select[name="departmentId"]').innerHTML = options;
     };
 
     // Setup event listeners
@@ -163,28 +147,39 @@ document.addEventListener('DOMContentLoaded', () => {
             openModal();
         });
 
-        // Cancel button
-        cancelButton.addEventListener('click', () => {
-            closeModal();
-        });
-
         // Form submission
         employeeForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             await handleFormSubmit(e);
         });
 
+        // Modal close buttons
+        document.querySelectorAll('.cancel-button').forEach(button => {
+            button.addEventListener('click', closeModal);
+        });
+
         // Filters
-        const applyFilters = utils.debounce(() => {
-            filters = {
-                search: searchInput.value,
-                department: departmentFilter.value,
-                role: roleFilter.value,
-                status: statusFilter.value
-            };
-            currentPage = 1;
-            loadEmployees();
-        }, 300);
+        const applyFilters = () => {
+            const searchTerm = searchInput.value.toLowerCase();
+            const departmentValue = departmentFilter.value;
+            const roleValue = roleFilter.value;
+            const statusValue = statusFilter.value;
+
+            const filteredEmployees = employees.filter(employee => {
+                const matchesSearch = (
+                    employee.firstName.toLowerCase().includes(searchTerm) ||
+                    employee.lastName.toLowerCase().includes(searchTerm) ||
+                    employee.email.toLowerCase().includes(searchTerm)
+                );
+                const matchesDepartment = !departmentValue || employee.departmentId === departmentValue;
+                const matchesRole = !roleValue || employee.role === roleValue;
+                const matchesStatus = statusValue === '' || employee.isActive === (statusValue === 'true');
+
+                return matchesSearch && matchesDepartment && matchesRole && matchesStatus;
+            });
+
+            renderFilteredEmployees(filteredEmployees);
+        };
 
         searchInput.addEventListener('input', applyFilters);
         departmentFilter.addEventListener('change', applyFilters);
@@ -195,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
         pageSizeSelect.addEventListener('change', (e) => {
             pageSize = parseInt(e.target.value);
             currentPage = 1;
-            loadEmployees();
+            applyFilters();
         });
     };
 
@@ -203,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const openModal = (employeeId = null) => {
         const modalTitle = document.getElementById('modal-title');
         modalTitle.textContent = employeeId ? 'Edit Employee' : 'Add Employee';
-
+        
         if (employeeId) {
             const employee = employees.find(e => e.id === employeeId);
             if (employee) {
@@ -233,30 +228,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const url = employeeId ? `/api/users/${employeeId}` : '/api/users';
             const method = employeeId ? 'PUT' : 'POST';
 
-            showLoading(true);
-            await utils.fetchWithAuth(url, {
+            const response = await fetch(url, {
                 method,
-                body: formData
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(Object.fromEntries(formData))
             });
+
+            if (!response.ok) throw new Error('Failed to save employee');
 
             showToast(`Employee ${employeeId ? 'updated' : 'added'} successfully`, 'success');
             closeModal();
             await loadEmployees();
         } catch (error) {
+            console.error('Error saving employee:', error);
             showToast(error.message, 'error');
-        } finally {
-            showLoading(false);
         }
-    };
-
-    // Populate department dropdowns
-    const populateDepartmentDropdowns = () => {
-        const options = departments.map(dept => 
-            `<option value="${dept.id}">${dept.name}</option>`
-        ).join('');
-
-        departmentFilter.innerHTML = '<option value="">All Departments</option>' + options;
-        document.querySelector('select[name="departmentId"]').innerHTML = options;
     };
 
     // Populate form for editing
@@ -270,36 +259,43 @@ document.addEventListener('DOMContentLoaded', () => {
         form.isActive.value = employee.isActive.toString();
     };
 
-    // Change page
-    window.changePage = (page) => {
-        if (page >= 1 && page <= totalPages) {
-            currentPage = page;
-            loadEmployees();
-        }
-    };
-
     // Delete employee
     window.deleteEmployee = async (employeeId) => {
-        if (confirm('Are you sure you want to delete this employee?')) {
-            try {
-                showLoading(true);
-                await utils.fetchWithAuth(`/api/users/${employeeId}`, {
-                    method: 'DELETE'
-                });
-                
-                showToast('Employee deleted successfully', 'success');
-                await loadEmployees();
-            } catch (error) {
-                showToast(error.message, 'error');
-            } finally {
-                showLoading(false);
-            }
+        if (!confirm('Are you sure you want to delete this employee?')) return;
+
+        try {
+            const response = await fetch(`/api/users/${employeeId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) throw new Error('Failed to delete employee');
+
+            showToast('Employee deleted successfully', 'success');
+            await loadEmployees();
+        } catch (error) {
+            console.error('Error deleting employee:', error);
+            showToast(error.message, 'error');
         }
     };
 
     // Edit employee
     window.editEmployee = (employeeId) => {
         openModal(employeeId);
+    };
+
+    // Render filtered employees
+    const renderFilteredEmployees = (filteredEmployees) => {
+        const start = (currentPage - 1) * pageSize;
+        const end = start + pageSize;
+        const paginatedEmployees = filteredEmployees.slice(start, end);
+        
+        totalPages = Math.ceil(filteredEmployees.length / pageSize);
+        renderEmployees(paginatedEmployees);
+        renderPagination();
     };
 
     // Initialize the page
